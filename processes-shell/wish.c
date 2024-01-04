@@ -8,27 +8,8 @@ void print_error() {
     write(STDERR_FILENO, error_message, strlen(error_message)); 
 }
 
-int get_next_word(const char *s, char* buf, int st) {
-    int i;
-
-    // get rid of whitespace
-    for(i=st; s[i]; i++) if(s[i] != ' ' && s[i] != '\n') break;
-
-    int idx = 0;
-    buf[0] = 0;
-    for(; s[i]; i++) {
-        if(s[i] == ' ' || s[i] == '\n') return i;
-        buf[idx++] = s[i];
-        buf[idx] = 0;
-    } 
-    return -1;
-}
-
 int builtin_cmd(char *cmd) {
     char buf[128]; 
-    int nxt = get_next_word(cmd, buf, 0);
-
-    if(nxt == -1) return 0;
 
     if(strcmp(buf, "exit") == 0) {
         exit(0);
@@ -44,33 +25,47 @@ int builtin_cmd(char *cmd) {
     return 0;
 }
 
-void parse_cmd(char *cmd, ssize_t len) {
+// execute the first-occuring commend of argv
+// returns the end position of the first-ocurring command of argv
+char** execute(char *argv[]) {
+}
 
-    if(builtin_cmd(cmd)) return;
+void parse_cmd(char *cmd) {
+    // tokenize
+    int argc = 0;
+    char *argv[1024];
+    char **ap;
+    for (ap = argv; (*ap = strsep(&cmd, " \t")) != NULL;) {
+        if (**ap != '\0') {
+            argc++;
+            if(++ap >= &argv[1024]) {
+                print_error();
+                return;
+            }
+        }
+    }
 
-    char buf[128]; 
-    int nxt = get_next_word(cmd, buf, 0);
-
-    if(nxt == -1) return;
+    ap = argv;
+    while (ap = execute(ap) != NULL);
 }
 
 int main(int argc, char *argv[]) {
 
     FILE* input = stdin;
-    if(argc == 2) {
+    if (argc == 2) {
         input = fopen(argv[1], "r");
         if(input == NULL) {
             print_error();
             exit(1);
         }
     }
-    else if(argc > 2) {
+    else if (argc > 2) {
         print_error();
         exit(1);
     }
 
-    while(1) {
-        if(input == stdin) {
+    while (1) {
+        if (input == stdin) {
             printf("wish> ");
         }
 
@@ -79,9 +74,9 @@ int main(int argc, char *argv[]) {
         ssize_t linelen;
 
         linelen = getline(&line, &linecap, input);
-        if(linelen == -1) break;
+        if (linelen == -1) break;
 
-        parse_cmd(line, linelen);
+        parse_cmd(line);
     }
 
     return 0;
